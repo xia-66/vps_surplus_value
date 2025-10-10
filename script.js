@@ -1,7 +1,15 @@
-/* ======================
-   主脚本：UI + 计算 + 自有 API
-   纯前端（多文件）
-   ====================== */
+/* --------------------------
+   官方 ExchangeRate-API 获取汇率（需要 API Key）
+   文档：https://www.exchangerate-api.com/
+   端点示例：
+     https://v6.exchangerate-api.com/v6/YOUR_API_KEY/latest/USD
+   解析：response.conversion_rates.CNY
+   使用方式：请在下方常量 EXCHANGE_RATE_API_KEY 中填入你自己的 API Key。
+   若未设置或设置为占位值，将自动降级为手动输入模式。
+   -------------------------- */
+const EXCHANGE_RATE_API_KEY = 'EXCHANGE_RATE_API_KEY';
+const EXCHANGE_API_BASE = 'https://v6.exchangerate-api.com/v6';
+
 
 // 统一选择器工具：既兼容 $('#id') / '.class' / 复杂选择器，也兼容传入裸 id（如 'currency'）
 function $(sel){
@@ -142,13 +150,15 @@ function sanitizeNonNegative(id, label){
 }
 
 /* --------------------------
-   自有 API 获取汇率（无 APIKEY）
-   URL 示例：
-   https://api.iloli.im/exchange_rate/v2/index.php/latest/USD
+   官方 ExchangeRate-API 获取汇率（需要 API Key）
+   文档：https://www.exchangerate-api.com/
+   端点示例：
+     https://v6.exchangerate-api.com/v6/YOUR_API_KEY/latest/USD
    解析：response.conversion_rates.CNY
-   这是自建的API反代，限制单IP请求10秒内不超过10次
+   使用方式：请在下方常量 EXCHANGE_RATE_API_KEY 中填入你自己的 API Key。
+   若未设置或设置为占位值，将自动降级为手动输入模式。
    -------------------------- */
-const EXCHANGE_API_BASE = 'https://api.iloli.im/exchange_rate/v2/index.php/latest';
+
 
 function toLocalRelative(utcStr){
   try{
@@ -170,7 +180,12 @@ async function fetchExchangeRate(){
   const cur = $('#currency').value || 'USD';
   setRateMeta('正在获取汇率...');
   try{
-    const resp = await fetch(`${EXCHANGE_API_BASE}/${encodeURIComponent(cur)}`, { cache: 'no-store' });
+    // 简单校验 API Key 是否已配置
+    if(!EXCHANGE_RATE_API_KEY || EXCHANGE_RATE_API_KEY === 'YOUR_API_KEY_HERE'){
+      throw new Error('未配置 ExchangeRate-API Key');
+    }
+    const url = `${EXCHANGE_API_BASE}/${encodeURIComponent(EXCHANGE_RATE_API_KEY)}/latest/${encodeURIComponent(cur)}`;
+    const resp = await fetch(url, { cache: 'no-store' });
     if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
     const data = await resp.json();
     // 确保返回结构中存在 conversion_rates.CNY
