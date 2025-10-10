@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>VPS 剩余价值计算器v2</title>
+
+  <!-- 图标 & 字体（系统字体优先） -->
+  <link rel="stylesheet" href="styles.css">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+  <!-- flatpickr（日期选择） -->
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+</head>
+<body>
+  <div class="app-shell">
+    <header class="topbar">
+      <div class="brand">
+        <div class="logo"><i class="fas fa-server"></i></div>
+        <div class="title">
+          <div class="name">剩余价值计算器</div>
+          <div class="tagline">极简 · 专业 · 可分享</div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <button id="themeToggle" class="icon-btn" aria-label="切换主题" title="切换亮/暗模式">
+          <i class="fas"></i>
+        </button>
+        <a class="link-muted" href="#" id="helpLink">说明</a>
+      </div>
+    </header>
+
+    <main class="main">
+      <section class="panel-left card">
+        <form id="calcForm" autocomplete="off" novalidate>
+          <h2 class="section-title">输入参数</h2>
+
+          <div class="row">
+            <label for="currency">币种</label>
+            <select id="currency" aria-label="币种">
+              <option value="USD">USD — 美元</option>
+              <option value="AUD">AUD — 澳元</option>
+              <option value="CAD">CAD — 加元</option>
+              <option value="EUR">EUR — 欧元</option>
+              <option value="GBP">GBP — 英镑</option>
+              <option value="HKD">HKD — 港元</option>
+              <option value="JPY">JPY — 日元</option>
+              <option value="KRW">KRW — 韩元</option>
+              <option value="SGD">SGD — 新加坡元</option>
+              <option value="TWD">TWD — 新台币</option>
+              <option value="CNY">CNY — 人民币</option>
+            </select>
+            <div class="submeta" id="rateMeta">汇率：— （自动获取）</div>
+          </div>
+
+          <div class="row grid-2">
+            <div>
+              <label for="customRate">自定汇率</label>
+              <input id="customRate" type="number" step="0.001" min="0" inputmode="decimal" placeholder="手动覆盖或使用自动汇率">
+            </div>
+            <div>
+              <label for="amount">续费金额（外币）</label>
+              <input id="amount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="例如 9.99">
+            </div>
+          </div>
+
+          <div class="row grid-2">
+            <div>
+              <label for="cycle">续费周期</label>
+              <select id="cycle">
+                <option value="1">月付</option>
+                <option value="3">季付</option>
+                <option value="6">半年</option>
+                <option value="12">年付</option>
+                <option value="24">两年</option>
+                <option value="36">三年</option>
+              </select>
+              <div class="submeta" id="cyclePresetLabel">当前周期：月</div>
+            </div>
+            <div>
+              <label for="bidAmount">出价金额（RMB）</label>
+              <input id="bidAmount" type="number" step="0.01" min="0" inputmode="decimal" placeholder="例如 50">
+            </div>
+          </div>
+
+          <div class="row grid-2">
+            <div>
+              <label for="transactionDate">交易日期</label>
+              <input id="transactionDate" type="text" placeholder="选择交易日期" readonly>
+            </div>
+            <div>
+              <label for="expiryDate">到期日期</label>
+              <input id="expiryDate" type="text" placeholder="选择到期日期" readonly>
+            </div>
+          </div>
+
+          <div class="actions">
+            <button id="calculateBtn" type="button" class="btn primary"><i class="fas fa-calculator"></i> 计算</button>
+            <button id="clearBtn" type="button" class="btn ghost"><i class="fas fa-eraser"></i> 清空</button>
+          </div>
+
+          <div class="row share-row">
+            <label for="shareLink">分享 / 导出</label>
+            <div class="share-controls">
+              <input id="shareLink" type="text" readonly placeholder="生成可分享链接">
+              <button id="generateLinkBtn" type="button" class="btn"><i class="fas fa-link"></i> 生成</button>
+              <button id="copyLinkBtn" type="button" class="btn compact" title="复制" aria-label="复制分享链接"><i class="fas fa-copy" aria-hidden="true"></i></button>
+            </div>
+            <div class="submeta">链接仅包含表单参数（纯前端），支持直接打开自动填充。</div>
+          </div>
+        </form>
+      </section>
+
+      <aside class="panel-right card result-card" id="calcResult" aria-live="polite">
+        <div class="result-header">
+          <h3>计算结果</h3>
+          <div class="result-meta">实时预览</div>
+        </div>
+
+        <dl class="result-grid">
+          <div><dt>交易日期</dt><dd id="resultDate">—</dd></div>
+          <div><dt>到期日期</dt><dd id="resultExpiry">—</dd></div>
+          <div><dt>外币汇率</dt><dd id="resultForeignRate">—</dd></div>
+          <div><dt>续费价格（RMB/周期）</dt><dd id="resultCyclePrice">—</dd></div>
+          <div><dt>折合年付（RMB/年）</dt><dd id="resultAnnualPrice">—</dd></div>
+          <div><dt>剩余天数</dt><dd id="resultDays">0</dd></div>
+          <div class="big"><dt>剩余价值</dt><dd id="resultValue">— 元</dd></div>
+          <div class="big"><dt>溢价 / 差额</dt><dd id="premiumValue">— 元</dd></div>
+        </dl>
+
+        <div class="result-footer">
+          <small>本项目开源于 <a href="https://github.com/Tomzhao1016/vps_surplus_value" target="_blank"><i class="fab fa-github"></i>GitHub</a></small>
+        </div>
+      </aside>
+    </main>
+
+    <!-- tiny help modal (inline, basic) -->
+    <div id="helpModal" class="modal" role="dialog" aria-modal="true" aria-labelledby="helpTitle" aria-hidden="true">
+      <div class="modal-card" tabindex="-1">
+        <h4 id="helpTitle">使用提示</h4>
+        <ul>
+          <li>选择币种后会自动从自有 API 获取对人民币（CNY）的汇率并填入“自定汇率”。</li>
+          <li>你可以手动覆盖汇率或直接用自动汇率。</li>
+          <li>生成的分享链接会把当前所有输入编码到 URL，打开即可恢复。</li>
+          <li><strong>交易日期</strong>：指交易生效的起算日（达成并生效/交割之日），用于计算到期前剩余天数；不同理解可能带来±1天差异，请以实际流程为准。</li>
+        </ul>
+        <div class="modal-actions">
+          <button id="closeHelp" class="btn">关闭</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <!-- scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/zh.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
