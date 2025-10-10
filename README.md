@@ -119,21 +119,6 @@ const EXCHANGE_RATE_API_KEY = 'YOUR_API_KEY_HERE';
 
 ---
 
-## 🤝 贡献方式
-
-欢迎通过 **Pull Request** 或 **Issue** 参与贡献：
-
-```bash
-# 创建新分支
-git checkout -b feature/your-feature
-# 提交修改
-git commit -m "Add new feature"
-# 推送
-git push origin feature/your-feature
-```
-
----
-
 ## 📜 开源许可证
 
 本项目基于 **Reciprocal Public License 1.5 (RPL-1.5)** 协议开源。  
