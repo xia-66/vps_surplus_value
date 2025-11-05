@@ -1,13 +1,11 @@
 /* --------------------------
-   官方 ExchangeRate-API 获取汇率（需要 API Key）
+   汇率 API 配置
+   - 生产环境：通过 Vercel Serverless Function (/api/exchange-rate) 获取汇率
+   - 本地开发：可直接配置 API Key（不推荐）或使用代理
    文档：https://www.exchangerate-api.com/
-   端点示例：
-     https://v6.exchangerate-api.com/v6/YOUR_API_KEY/latest/USD
-   解析：response.conversion_rates.CNY
-   使用方式：请在下方常量 EXCHANGE_RATE_API_KEY 中填入你自己的 API Key。
-   若未设置或设置为占位值，将自动降级为手动输入模式。
    -------------------------- */
-const EXCHANGE_RATE_API_KEY = 'EXCHANGE_RATE_API_KEY';
+const USE_VERCEL_API = true; // 是否使用 Vercel API 路由（推荐）
+const EXCHANGE_RATE_API_KEY = 'EXCHANGE_RATE_API_KEY'; // 仅用于本地开发
 const EXCHANGE_API_BASE = 'https://v6.exchangerate-api.com/v6';
 
 
@@ -180,21 +178,44 @@ async function fetchExchangeRate(){
   const cur = $('#currency').value || 'USD';
   setRateMeta('正在获取汇率...');
   try{
-    // 简单校验 API Key 是否已配置
-    if(!EXCHANGE_RATE_API_KEY || EXCHANGE_RATE_API_KEY === 'YOUR_API_KEY_HERE'){
-      throw new Error('未配置 ExchangeRate-API Key');
+    let data;
+    
+    if(USE_VERCEL_API){
+      // 使用 Vercel Serverless Function（推荐）
+      const url = `/api/exchange-rate?currency=${encodeURIComponent(cur)}`;
+      const resp = await fetch(url, { cache: 'no-store' });
+      if(!resp.ok){
+        const errorData = await resp.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${resp.status}`);
+      }
+      data = await resp.json();
+      
+      if(!data.success || !data.rate){
+        throw new Error('API 返回数据格式不正确');
+      }
+      
+      const rate = data.rate;
+      $('#customRate').value = Number(rate).toFixed(4);
+      const rel = toLocalRelative(data.time_last_update_utc ?? '');
+      setRateMeta(`（${cur} → CNY）: ${Number(rate).toFixed(4)} （更新：${rel}）`);
+      
+    } else {
+      // 直接调用 ExchangeRate-API（仅用于本地开发）
+      if(!EXCHANGE_RATE_API_KEY || EXCHANGE_RATE_API_KEY === 'EXCHANGE_RATE_API_KEY' || EXCHANGE_RATE_API_KEY === 'YOUR_API_KEY_HERE'){
+        throw new Error('未配置 ExchangeRate-API Key');
+      }
+      const url = `${EXCHANGE_API_BASE}/${encodeURIComponent(EXCHANGE_RATE_API_KEY)}/latest/${encodeURIComponent(cur)}`;
+      const resp = await fetch(url, { cache: 'no-store' });
+      if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
+      data = await resp.json();
+      
+      const rate = data && data.conversion_rates && data.conversion_rates.CNY;
+      if(!rate) throw new Error('API 返回缺少 conversion_rates.CNY');
+      $('#customRate').value = Number(rate).toFixed(4);
+      const rel = toLocalRelative(data.time_last_update_utc ?? '');
+      setRateMeta(`（${cur} → CNY）: ${Number(rate).toFixed(4)} （更新：${rel}）`);
     }
-    const url = `${EXCHANGE_API_BASE}/${encodeURIComponent(EXCHANGE_RATE_API_KEY)}/latest/${encodeURIComponent(cur)}`;
-    const resp = await fetch(url, { cache: 'no-store' });
-    if(!resp.ok) throw new Error(`HTTP ${resp.status}`);
-    const data = await resp.json();
-    // 确保返回结构中存在 conversion_rates.CNY
-    const rate = data && data.conversion_rates && data.conversion_rates.CNY;
-    if(!rate) throw new Error('API 返回缺少 conversion_rates.CNY');
-    $('#customRate').value = Number(rate).toFixed(4);
-    // 仅传入动态内容，避免与 setRateMeta 的前缀重复
-    const rel = toLocalRelative(data.time_last_update_utc ?? '');
-    setRateMeta(`（${cur} → CNY）: ${Number(rate).toFixed(4)} （更新：${rel}）`);
+    
   } catch(err){
     console.warn('fetchExchangeRate fail', err);
     setRateMeta('自动获取汇率失败：请手动输入或重试');

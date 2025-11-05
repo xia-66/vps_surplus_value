@@ -57,36 +57,79 @@
 
 ## ⚙️ 使用方法
 
-### 1️⃣ 克隆项目
+### 方式一：部署到 Vercel（推荐）
+
+#### 1️⃣ 一键部署
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Tomzhao1016/vps_surplus_value_v2)
+
+#### 2️⃣ 配置环境变量
+
+部署后，在 Vercel 项目设置中添加环境变量：
+
+- **变量名**：`EXCHANGE_RATE_API_KEY`
+- **变量值**：你的 ExchangeRate-API Key（[点击获取](https://www.exchangerate-api.com/)）
+
+路径：**Project Settings → Environment Variables**
+
+#### 3️⃣ 重新部署
+
+添加环境变量后，在 **Deployments** 页面点击重新部署（Redeploy）使配置生效。
+
+---
+
+### 方式二：本地开发
+
+#### 1️⃣ 克隆项目
 ```bash
 git clone https://github.com/Tomzhao1016/vps_surplus_value_v2.git
+cd vps_surplus_value_v2
 ```
 
-### 2️⃣ 本地运行（推荐）
+#### 2️⃣ 配置环境变量
+```bash
+# 复制示例配置文件
+cp env.example .env
+
+# 编辑 .env 文件，填入你的 API Key
+EXCHANGE_RATE_API_KEY=your_actual_api_key_here
+```
+
+#### 3️⃣ 本地运行
+```bash
+# 安装 Vercel CLI（首次）
+npm install -g vercel
+
+# 使用 Vercel Dev 运行（支持 Serverless Functions）
+vercel dev
+```
+
+或使用静态服务器（汇率功能需手动配置）：
 ```bash
 npm install -g serve
 serve .
 ```
-确保本地服务器可访问汇率 API。
 
-### 3️⃣ 直接打开
-在浏览器中打开 `index.html` 即可（部分 API 功能可能受限）。
+#### 4️⃣ 直接打开
+在浏览器中打开 `index.html`（部分 API 功能可能受限）。
 
 ---
 
 ## 🔑 汇率 API 配置
 
-项目使用 **ExchangeRate-API** 获取实时汇率。  
-需自行申请 API Key：  
-👉 [https://www.exchangerate-api.com/](https://www.exchangerate-api.com/)
+项目使用 **ExchangeRate-API** 获取实时汇率。
 
-在 `script.js` 顶部修改：
+### 获取 API Key
 
-```js
-const EXCHANGE_RATE_API_KEY = 'YOUR_API_KEY_HERE';
-```
+1. 访问 [ExchangeRate-API 官网](https://www.exchangerate-api.com/)
+2. 注册并获取免费 API Key（每月 1500 次调用）
+3. 将 API Key 配置为环境变量（见上方部署说明）
 
-若未配置或使用占位值，将自动回退为手动输入模式。
+### 配置说明
+
+- **Vercel 部署**：在项目环境变量中添加 `EXCHANGE_RATE_API_KEY`
+- **本地开发**：在 `.env` 文件中配置（参考 `env.example`）
+- **降级模式**：若未配置 API Key，将自动回退为手动输入汇率模式
 
 ---
 
@@ -94,14 +137,25 @@ const EXCHANGE_RATE_API_KEY = 'YOUR_API_KEY_HERE';
 
 ```
 📦 vps_surplus_value_v2
- ┣ 📜 index.html    # 主页面结构与布局
- ┣ 📜 styles.css    # 样式文件（主题、响应式、卡片设计）
- ┗ 📜 script.js     # 核心逻辑（计算、汇率、分享、主题切换）
+ ┣ 📂 api/
+ ┃ ┗ 📜 exchange-rate.js  # Vercel Serverless Function（汇率 API 代理）
+ ┣ 📜 index.html          # 主页面结构与布局
+ ┣ 📜 styles.css          # 样式文件（主题、响应式、卡片设计）
+ ┣ 📜 script.js           # 核心逻辑（计算、汇率、分享、主题切换）
+ ┣ 📜 vercel.json         # Vercel 部署配置
+ ┣ 📜 env.example         # 环境变量示例
+ ┗ 📜 .gitignore          # Git 忽略配置
 ```
 
 ---
 
 ## 📘 模块说明
+
+### `api/exchange-rate.js`
+- **Vercel Serverless Function**，用于安全地代理汇率 API 请求。
+- 在服务器端调用 ExchangeRate-API，避免前端暴露 API Key。
+- 支持 CORS，返回标准化的 JSON 响应。
+- 包含错误处理与参数验证。
 
 ### `index.html`
 - 页面结构清晰，分为顶部导航、左侧输入面板和右侧结果面板。  
@@ -114,8 +168,13 @@ const EXCHANGE_RATE_API_KEY = 'YOUR_API_KEY_HERE';
 
 ### `script.js`
 - 包含完整计算逻辑、汇率获取与 UI 交互绑定。  
+- 支持通过 Vercel API 路由或直接调用获取汇率（可配置）。
 - 自动生成带参数分享链接，可直接复现计算场景。  
 - 提供通知机制与表单输入安全验证。
+
+### `vercel.json`
+- Vercel 平台部署配置文件。
+- 配置 Serverless Functions 路由与安全响应头。
 
 ---
 
